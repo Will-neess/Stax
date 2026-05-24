@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faction — Direct Indexing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --f-navy:   #020B1A;
+      --f-deep:   #041630;
+      --f-mid:    #0A2D5E;
+      --f-blue:   #0E4494;
+      --f-bright: #1668C8;
+      --f-accent: #3D8EF0;
+      --f-glow:   #6AAAF5;
+      --f-ice:    #B8D6FA;
+      --f-text:   #E8F2FF;
+      --f-muted:  #7AA8D8;
+      --f-border: rgba(61,142,240,0.18);
+      --f-card:   rgba(6,28,74,0.85);
+      --f-green:  #5DCAA5;
+      --f-red:    #F06A6A;
+      --f-orange: #F0A040;
+      --f-purple: #C07FF0;
+    }
+
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--f-deep); color: var(--f-text); overflow: hidden; }
+
+    /* ─── TOPBAR ─── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 50px; height: 80px;
+      border-bottom: 0.5px solid var(--f-border);
+      background: rgba(2,11,26,0.97);
+      position: relative; z-index: 10;
+    }
+   .logo-img {
+  width: 50px;   /* gør den mindre eller større efter behov */
+  height: auto;
+}
+    .nav-pills { display: flex; gap: 2px; }
+    .nav-pill {
+      padding: 6px 14px; font-size: 13px; border-radius: 20px;
+      border: 0.5px solid transparent; background: transparent;
+      color: var(--f-muted); cursor: pointer;
+      transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .nav-pill:hover { color: var(--f-text); background: rgba(61,142,240,0.07); }
+    .nav-pill.active { background: rgba(61,142,240,0.14); border-color: var(--f-border); color: var(--f-text); }
+    .nav-pill .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+    .nav-pill.active .pill-dot { opacity: 1; }
+    .nav-pill.crypto-pill.active { background: rgba(240,160,64,0.14); border-color: rgba(240,160,64,0.3); color: var(--f-orange); }
+    .nav-pill.crypto-pill .pill-dot { background: var(--f-orange); }
+
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .badge-free { font-size: 11px; padding: 4px 12px; background: rgba(61,142,240,0.1); border: 0.5px solid var(--f-accent); border-radius: 20px; color: var(--f-glow); letter-spacing: 0.04em; }
+    .btn-login { font-size: 13px; padding: 7px 18px; border-radius: 8px; border: 0.5px solid var(--f-border); background: transparent; color: var(--f-text); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+    .btn-login:hover { background: rgba(61,142,240,0.1); }
+
+    /* ─── PAGE SHELL ─── */
+    .app-body { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 57px); }
+
+    .full-page { display: none; grid-column: 1 / -1; overflow-y: auto; padding: 32px; }
+    .full-page.active { display: block; }
+    .full-page::-webkit-scrollbar { width: 4px; }
+    .full-page::-webkit-scrollbar-thumb { background: var(--f-border); border-radius: 2px; }
+
+    /* ─── SHARED ─── */
+    .section-label { font-size: 10px; letter-spacing: 0.14em; color: var(--f-muted); text-transform: uppercase; margin-bottom: 14px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 26px; }
+    .page-sub { font-size: 13px; color: var(--f-muted); margin-top: 4px; }
+    .divider { height: 0.5px; background: var(--f-border); }
+
+    .stat-card { background: var(--f-card); border: 0.5px solid var(--f-border); border-radius: 12px; padding: 16px; }
+    .stat-label { font-size: 11px; color: var(--f-muted); margin-bottom: 6px; letter-spacing: 0.03em; }
+    .stat-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--f-text); }
+    .stat-change { font-size: 11px; color: var(--f-green); margin-top: 4px; }
+    .stat-change.neg { color: var(--f-red); }
+
+    /* ─── LEFT PANEL (overview) ─── */
+    .left-panel { padding: 28px; overflow-y: auto; border-right: 0.5px solid var(--f-border); }
+    .left-panel::-webkit-scrollbar { width: 4px; }
+    .left-panel::-webkit-scrollbar-thumb { background: var(--f-border); border-radius: 2px; }
+
+    .hero-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 28px; }
+
+    /* ─── INDEX CARDS ─── */
+    .indexes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .index-card {
+      background: var(--f-card); border: 0.5px solid var(--f-border);
+      border-radius: 14px; padding: 18px; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .index-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent); opacity:0.7; }
+    .index-card:hover { border-color: rgba(61,142,240,0.35); background: rgba(14,68,148,0.35); transform: translateY(-1px); }
+    .index-card.selected { border-color: var(--accent) !important; background: rgba(22,104,200,0.18) !important; }
+    .index-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+    .index-name { font-size:14px; font-weight:500; color:var(--f-text); }
+    .index-tag { font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(61,142,240,0.1); color:var(--f-glow); border:0.5px solid rgba(61,142,240,0.2); white-space:nowrap; }
+    .index-desc { font-size:12px; color:var(--f-muted); line-height:1.5; margin-bottom:10px; }
+    .sparkline { height:30px; margin-bottom:8px; display:flex; align-items:flex-end; gap:3px; }
+    .spark-bar { flex:1; border-radius:2px; background:var(--accent); opacity:0.45; transition:opacity 0.15s; }
+    .index-card:hover .spark-bar { opacity:0.65; }
+    .index-footer { display:flex; justify-content:space-between; align-items:flex-end; }
+    .index-return { font-family:'DM Serif Display',serif; font-size:18px; color:var(--f-text); }
+    .index-return span { font-size:11px; color:var(--f-muted); font-family:'DM Sans',sans-serif; }
+    .index-stocks { font-size:11px; color:var(--f-muted); }
+
+    /* ─── RIGHT PANEL ─── */
+    .right-panel { padding: 22px; background: rgba(2,11,26,0.55); display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+    .right-panel::-webkit-scrollbar { width: 4px; }
+    .right-panel::-webkit-scrollbar-thumb { background: var(--f-border); border-radius: 2px; }
+
+    .buy-box { background: var(--f-card); border: 0.5px solid var(--f-border); border-radius: 14px; padding: 20px; }
+    .selected-badge { display:inline-block; font-size:11px; padding:3px 10px; background:rgba(22,104,200,0.18); border:0.5px solid var(--f-accent); border-radius:10px; color:var(--f-glow); margin-bottom:8px; }
+    .buy-title { font-family:'DM Serif Display',serif; font-size:18px; margin-bottom:3px; }
+    .buy-subtitle { font-size:12px; color:var(--f-muted); margin-bottom:18px; }
+    .input-label { font-size:10px; color:var(--f-muted); margin-bottom:6px; letter-spacing:0.1em; text-transform:uppercase; }
+    .amount-wrap { position:relative; margin-bottom:14px; }
+    .amount-prefix { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--f-muted); }
+    .amount-input { width:100%; background:rgba(2,11,26,0.8); border:0.5px solid var(--f-border); border-radius:8px; color:var(--f-text); font-size:22px; font-family:'DM Serif Display',serif; padding:11px 14px 11px 42px; outline:none; transition:border-color 0.15s; }
+    .amount-input:focus { border-color:var(--f-accent); }
+
+    .quick-amounts { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+    .qa-btn { font-size:11px; padding:4px 10px; border-radius:6px; border:0.5px solid var(--f-border); background:transparent; color:var(--f-muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.12s; }
+    .qa-btn:hover { background:rgba(61,142,240,0.1); color:var(--f-text); border-color:var(--f-accent); }
+
+    .fee-breakdown { background:rgba(2,11,26,0.5); border:0.5px solid var(--f-border); border-radius:8px; padding:12px 14px; margin-bottom:16px; }
+    .fee-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:7px; color:var(--f-muted); }
+    .fee-row:last-child { margin-bottom:0; }
+    .fee-row.total { color:var(--f-text); font-weight:500; border-top:0.5px solid var(--f-border); padding-top:8px; margin-top:4px; }
+    .fee-zero { color:var(--f-green); }
+    .fx-note { font-size:11px; color:var(--f-muted); margin-bottom:14px; font-style:italic; }
+
+    .btn-buy { width:100%; padding:13px; background:var(--f-bright); border:none; border-radius:10px; color:white; font-size:14px; font-weight:500; font-family:'DM Sans',sans-serif; cursor:pointer; letter-spacing:0.03em; transition:background 0.15s, transform 0.1s; }
+    .btn-buy:hover { background:var(--f-accent); }
+    .btn-buy:active { transform:scale(0.99); }
+    .btn-buy.crypto-buy { background: linear-gradient(135deg, #b45309, #d97706); }
+    .btn-buy.crypto-buy:hover { background: linear-gradient(135deg, #d97706, #f59e0b); }
+
+    .perks { display:flex; flex-direction:column; gap:12px; }
+    .perk { display:flex; align-items:flex-start; gap:12px; font-size:12px; color:var(--f-muted); line-height:1.5; }
+    .perk-icon { width:30px; height:30px; border-radius:8px; background:rgba(61,142,240,0.08); border:0.5px solid var(--f-border); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--f-accent); font-size:15px; margin-top:1px; }
+    .perk-icon.orange { background:rgba(240,160,64,0.08); border-color:rgba(240,160,64,0.2); color:var(--f-orange); }
+    .perk strong { color:var(--f-text); font-weight:500; display:block; margin-bottom:1px; }
+
+    /* ─── TOAST ─── */
+    .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#0E4494; border:0.5px solid var(--f-accent); color:var(--f-text); padding:12px 22px; border-radius:10px; font-size:13px; z-index:999; transition:transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s; opacity:0; pointer-events:none; white-space:nowrap; }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(2,11,26,0.82); z-index:100; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#061C4A; border:0.5px solid var(--f-border); border-radius:16px; padding:28px; max-width:440px; width:90%; }
+    .modal h2 { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:6px; }
+    .modal p { font-size:13px; color:var(--f-muted); margin-bottom:18px; line-height:1.6; }
+    .modal-detail { background:rgba(2,11,26,0.5); border:0.5px solid var(--f-border); border-radius:8px; padding:12px 14px; margin-bottom:18px; font-size:12px; }
+    .modal-detail-row { display:flex; justify-content:space-between; margin-bottom:6px; color:var(--f-muted); }
+    .modal-detail-row:last-child { margin-bottom:0; color:var(--f-text); font-weight:500; border-top:0.5px solid var(--f-border); padding-top:8px; margin-top:4px; }
+    .modal-btns { display:flex; gap:10px; }
+    .btn-confirm { flex:1; padding:11px; background:var(--f-bright); border:none; border-radius:8px; color:white; font-size:13px; font-family:'DM Sans',sans-serif; cursor:pointer; font-weight:500; transition:background 0.15s; }
+    .btn-confirm:hover { background:var(--f-accent); }
+    .btn-confirm.orange { background:#b45309; }
+    .btn-confirm.orange:hover { background:#d97706; }
+    .btn-cancel { flex:1; padding:11px; background:transparent; border:0.5px solid var(--f-border); border-radius:8px; color:var(--f-muted); font-size:13px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:background 0.15s, color 0.15s; }
+    .btn-cancel:hover { background:rgba(61,142,240,0.07); color:var(--f-text); }
+
+    /* ─── PORTFOLIO PAGE ─── */
+    .portfolio-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
+    .portfolio-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
+    .holding-list { display:flex; flex-direction:column; gap:10px; }
+    .holding-card { background:var(--f-card); border:0.5px solid var(--f-border); border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:16px; }
+    .holding-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .holding-name { font-size:14px; font-weight:500; }
+    .holding-shares { font-size:12px; color:var(--f-muted); }
+    .holding-value { font-family:'DM Serif Display',serif; font-size:16px; text-align:right; }
+    .holding-change { font-size:12px; text-align:right; margin-top:2px; }
+    .progress-bar-wrap { flex:1; max-width:120px; }
+    .progress-bar-bg { background:rgba(61,142,240,0.1); border-radius:4px; height:4px; }
+    .progress-bar-fill { height:4px; border-radius:4px; background:var(--accent, var(--f-accent)); }
+
+    /* ─── MARKET PAGE ─── */
+    .market-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:20px; }
+    .market-card { background:var(--f-card); border:0.5px solid var(--f-border); border-radius:14px; padding:20px; position:relative; overflow:hidden; }
+    .market-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent); }
+    .market-card-name { font-size:15px; font-weight:500; margin-bottom:4px; }
+    .market-card-tag { font-size:10px; color:var(--f-muted); margin-bottom:14px; }
+    .market-card-return { font-family:'DM Serif Display',serif; font-size:28px; }
+    .market-card-label { font-size:11px; color:var(--f-muted); margin-bottom:14px; }
+    .market-meta { display:flex; justify-content:space-between; font-size:11px; color:var(--f-muted); }
+    .btn-add { margin-top:14px; width:100%; padding:9px; background:transparent; border:0.5px solid var(--f-border); border-radius:8px; color:var(--f-glow); font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:background 0.15s, border-color 0.15s; }
+    .btn-add:hover { background:rgba(61,142,240,0.1); border-color:var(--f-accent); }
+    .btn-add.orange { color:var(--f-orange); }
+    .btn-add.orange:hover { background:rgba(240,160,64,0.1); border-color:var(--f-orange); }
+
+    /* ─── CRYPTO PAGE ─── */
+    .crypto-hero {
+      background: rgba(180,83,9,0.08);
+      border: 0.5px solid rgba(240,160,64,0.2);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .crypto-hero-left h2 { font-family:'DM Serif Display',serif; font-size:22px; margin-bottom:6px; }
+    .crypto-hero-left p { font-size:13px; color:var(--f-muted); line-height:1.6; max-width:500px; }
+    .crypto-fee-badges { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+    .fee-badge { font-size:11px; padding:4px 12px; border-radius:20px; border:0.5px solid; }
+    .fee-badge.green { background:rgba(93,202,165,0.1); border-color:rgba(93,202,165,0.3); color:var(--f-green); }
+    .fee-badge.orange { background:rgba(240,160,64,0.1); border-color:rgba(240,160,64,0.3); color:var(--f-orange); }
+    .fee-badge.purple { background:rgba(192,127,240,0.1); border-color:rgba(192,127,240,0.3); color:var(--f-purple); }
+
+    .crypto-layout { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+
+    .crypto-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+    .crypto-card {
+      background: var(--f-card);
+      border: 0.5px solid var(--f-border);
+      border-radius:14px; padding:18px; cursor:pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      position:relative; overflow:hidden;
+    }
+    .crypto-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent); opacity:0.8; }
+    .crypto-card:hover { border-color:rgba(240,160,64,0.35); background:rgba(120,60,8,0.25); transform:translateY(-1px); }
+    .crypto-card.selected { border-color:var(--accent) !important; background:rgba(180,83,9,0.2) !important; }
+
+    .crypto-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+    .crypto-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; flex-shrink:0; }
+    .crypto-name { font-size:14px; font-weight:500; margin-top:2px; }
+    .crypto-symbol { font-size:11px; color:var(--f-muted); }
+    .crypto-price { font-family:'DM Serif Display',serif; font-size:16px; text-align:right; }
+    .crypto-change { font-size:11px; text-align:right; margin-top:2px; }
+
+    .crypto-desc { font-size:12px; color:var(--f-muted); line-height:1.5; margin-bottom:10px; }
+    .crypto-footer { display:flex; justify-content:space-between; align-items:flex-end; }
+    .crypto-return { font-family:'DM Serif Display',serif; font-size:18px; }
+    .crypto-coins { font-size:11px; color:var(--f-muted); }
+
+    .crypto-buy-panel {
+      background: var(--f-card);
+      border: 0.5px solid rgba(240,160,64,0.2);
+      border-radius:14px; padding:20px;
+      position:sticky; top:0;
+    }
+
+    .spread-explainer {
+      background: rgba(192,127,240,0.07);
+      border: 0.5px solid rgba(192,127,240,0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+    .spread-explainer-title { font-size:11px; font-weight:500; color:var(--f-purple); margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+    .spread-explainer p { font-size:11px; color:var(--f-muted); line-height:1.5; }
+
+    .price-direction { display:flex; gap:8px; margin-bottom:14px; }
+    .price-dir-btn { flex:1; padding:8px; border-radius:8px; border:0.5px solid var(--f-border); background:transparent; color:var(--f-muted); font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:all 0.15s; text-align:center; }
+    .price-dir-btn.active-buy { background:rgba(93,202,165,0.12); border-color:rgba(93,202,165,0.3); color:var(--f-green); }
+    .price-dir-btn.active-sell { background:rgba(240,106,106,0.12); border-color:rgba(240,106,106,0.3); color:var(--f-red); }
+
+    /* ─── SPREAD INFO BOX ─── */
+    .spread-info {
+      background:rgba(2,11,26,0.5); border:0.5px solid var(--f-border); border-radius:8px; padding:12px 14px; margin-bottom:16px; font-size:12px;
+    }
+    .spread-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--f-muted); }
+    .spread-row:last-child { margin-bottom:0; }
+    .spread-row.total-row { color:var(--f-text); font-weight:500; border-top:0.5px solid var(--f-border); padding-top:8px; margin-top:4px; }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+  <img src="Faction.png" alt="Logo" class="logo-img">
+</div>
+  <div class="nav-pills">
+    <button class="nav-pill active" onclick="showPage('overview')">
+      <span class="pill-dot"></span>Oversigt
+    </button>
+    <button class="nav-pill" onclick="showPage('portfolio')">
+      <span class="pill-dot"></span>Min portefølje
+    </button>
+    <button class="nav-pill" onclick="showPage('market')">
+      <span class="pill-dot"></span>Marked
+    </button>
+    <button class="nav-pill crypto-pill" onclick="showPage('crypto')">
+      <span class="pill-dot"></span>Krypto Index
+    </button>
+  </div>
+  <div class="topbar-right">
+    <div class="badge-free">0 kr. kurtage &nbsp;·&nbsp; 0,10% valuta</div>
+    <button class="btn-login" onclick="showToast('Log ind-funktion kommer snart!')">Log ind</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     OVERVIEW PAGE
+════════════════════════════════════════ -->
+<div class="app-body" id="page-overview">
+  <div class="left-panel">
+    <div class="section-label">Din portefølje</div>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-label">Samlet værdi</div>
+        <div class="stat-value">84.320 kr</div>
+        <div class="stat-change">↑ +2,4% i dag</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Afkast (ÅTD)</div>
+        <div class="stat-value">+11,8%</div>
+        <div class="stat-change">↑ +9.940 kr</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Aktive indeks</div>
+        <div class="stat-value">4</div>
+        <div class="stat-change">direkte ejet</div>
+      </div>
+    </div>
+    <div class="section-label">Direct Indexing grupper</div>
+    <div class="indexes-grid" id="indexGrid"></div>
+  </div>
+
+  <div class="right-panel">
+    <div class="buy-box">
+      <div id="selectedBadge" class="selected-badge">Valgt: Global Tech 100</div>
+      <div class="buy-title">Køb andel</div>
+      <div class="buy-subtitle">Du ejer aktierne direkte — ikke via en fond</div>
+      <div class="input-label">Beløb (DKK)</div>
+      <div class="amount-wrap">
+        <span class="amount-prefix">kr.</span>
+        <input class="amount-input" type="number" id="amountInput" value="10000" min="100" />
+      </div>
+      <div class="quick-amounts">
+        <button class="qa-btn" onclick="setAmount(1000)">1.000</button>
+        <button class="qa-btn" onclick="setAmount(5000)">5.000</button>
+        <button class="qa-btn" onclick="setAmount(10000)">10.000</button>
+        <button class="qa-btn" onclick="setAmount(50000)">50.000</button>
+      </div>
+      <div class="fee-breakdown">
+        <div class="fee-row"><span>Kurtage</span><span class="fee-zero">Gratis</span></div>
+        <div class="fee-row" id="fxRow"><span>Valutaveksling (0,10%)</span><span id="fxAmount">10,00 kr</span></div>
+        <div class="fee-row total"><span>Du investerer effektivt</span><span id="netAmount">9.990,00 kr</span></div>
+      </div>
+      <p class="fx-note" id="fxNote" style="display:none">Ingen valutaomregning — dette er et DKK-indeks.</p>
+      <button class="btn-buy" onclick="openBuyModal()">Køb nu →</button>
+    </div>
+    <div class="divider"></div>
+    <div class="perks">
+      <div class="perk"><div class="perk-icon"><i class="ti ti-lock-open"></i></div><div><strong>0 kr. kurtage</strong>Ingen skjulte handelsomkostninger.</div></div>
+      <div class="perk"><div class="perk-icon"><i class="ti ti-currency-dollar"></i></div><div><strong>0,10% valutaveksling</strong>Kun ved handel i fremmed valuta.</div></div>
+      <div class="perk"><div class="perk-icon"><i class="ti ti-chart-dots"></i></div><div><strong>Direkte ejerskab</strong>Du ejer de underliggende aktier.</div></div>
+      <div class="perk"><div class="perk-icon"><i class="ti ti-adjustments"></i></div><div><strong>Fuld kontrol</strong>Ekskluder brancher frit.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PORTFOLIO PAGE
+════════════════════════════════════════ -->
+<div class="full-page" id="page-portfolio">
+  <div class="portfolio-header">
+    <div>
+      <div class="page-title">Min portefølje</div>
+      <div class="page-sub">Dine direkte ejede aktie- og kryptoindeks</div>
+    </div>
+    <button class="btn-buy" style="width:auto;padding:10px 22px;font-size:13px;" onclick="showPage('overview')">+ Tilføj indeks</button>
+  </div>
+  <div class="portfolio-stats" id="portfolioStats"></div>
+  <div class="section-label">Aktiebeholdninger</div>
+  <div class="holding-list" id="holdingList"></div>
+  <div class="section-label" style="margin-top:24px;" id="cryptoHoldingLabel">Kryptobeholdninger</div>
+  <div class="holding-list" id="cryptoHoldingList"></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MARKET PAGE
+════════════════════════════════════════ -->
+<div class="full-page" id="page-market">
+  <div class="page-title">Markedsoversigt</div>
+  <div class="page-sub">Alle tilgængelige Direct Indexing grupper</div>
+  <div class="market-grid" id="marketGrid"></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CRYPTO PAGE
+════════════════════════════════════════ -->
+<div class="full-page" id="page-crypto">
+
+  <!-- Hero banner -->
+  <div class="crypto-hero">
+    <div class="crypto-hero-left">
+      <h2>Krypto Direct Indexing</h2>
+      <p>Køb kurve af kryptovalutaer direkte — du ejer mønterne, ikke en fond. Sammensæt dit eget kryptoindeks og spred risikoen automatisk.</p>
+      <div class="crypto-fee-badges">
+        <span class="fee-badge green">0 kr. kurtage</span>
+        <span class="fee-badge orange">0,10% valutaveksling (DKK→USD)</span>
+        <span class="fee-badge purple">0,12% spread — synligt før køb</span>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:11px;color:var(--f-muted);margin-bottom:4px">Din krypto-portefølje</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:28px;" id="cryptoTotalDisplay">0,00 kr</div>
+      <div style="font-size:11px;color:var(--f-green);margin-top:4px;" id="cryptoChangeDisplay">—</div>
+    </div>
+  </div>
+
+  <div class="crypto-layout">
+    <!-- LEFT: index grid -->
+    <div>
+      <div class="section-label">Vælg kryptoindeks</div>
+      <div class="crypto-grid" id="cryptoGrid"></div>
+    </div>
+
+    <!-- RIGHT: buy panel -->
+    <div class="crypto-buy-panel">
+      <div id="cryptoSelectedBadge" class="selected-badge" style="border-color:rgba(240,160,64,0.4);background:rgba(180,83,9,0.15);color:var(--f-orange);">Valgt: DeFi Top 10</div>
+      <div class="buy-title" style="margin-bottom:3px;">Køb kryptoindeks</div>
+      <div class="buy-subtitle">Du ejer mønterne direkte i din wallet</div>
+
+      <!-- Buy / Sell toggle -->
+      <div class="price-direction">
+        <button class="price-dir-btn active-buy" id="dirBuy" onclick="setDirection('buy')">↑ Køb</button>
+        <button class="price-dir-btn" id="dirSell" onclick="setDirection('sell')">↓ Sælg</button>
+      </div>
+
+      <div class="input-label">Beløb (DKK)</div>
+      <div class="amount-wrap" style="margin-bottom:10px;">
+        <span class="amount-prefix">kr.</span>
+        <input class="amount-input" type="number" id="cryptoAmountInput" value="5000" min="100" />
+      </div>
+      <div class="quick-amounts">
+        <button class="qa-btn" onclick="setCryptoAmount(500)">500</button>
+        <button class="qa-btn" onclick="setCryptoAmount(1000)">1.000</button>
+        <button class="qa-btn" onclick="setCryptoAmount(5000)">5.000</button>
+        <button class="qa-btn" onclick="setCryptoAmount(25000)">25.000</button>
+      </div>
+
+      <!-- Spread explainer -->
+      <div class="spread-explainer">
+        <div class="spread-explainer-title"><i class="ti ti-info-circle" style="font-size:13px;"></i> Hvad er spread?</div>
+        <p>Spread er forskellen på købs- og salgspris. Vi tjener 0,12% på denne forskel — det er ikke kurtage, men en markedspris. Du ser altid det præcise beløb nedenfor.</p>
+      </div>
+
+      <!-- Fee breakdown -->
+      <div class="spread-info">
+        <div class="spread-row"><span>Kurtage</span><span class="fee-zero">Gratis</span></div>
+        <div class="spread-row"><span>Valutaveksling DKK→USD (0,10%)</span><span id="cFxAmt">5,00 kr</span></div>
+        <div class="spread-row"><span id="spreadLabel">Spread (0,12% — køb)</span><span id="cSpreadAmt">6,00 kr</span></div>
+        <div class="spread-row total-row"><span id="cNetLabel">Du køber for effektivt</span><span id="cNetAmt">4.989,00 kr</span></div>
+      </div>
+
+      <button class="btn-buy crypto-buy" id="cryptoBuyBtn" onclick="openCryptoModal()">Køb kryptoindeks →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SHARED MODAL
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Bekræft køb</h2>
+    <p id="modalDesc"></p>
+    <div class="modal-detail">
+      <div class="modal-detail-row"><span>Indeks</span><span id="mIdx">—</span></div>
+      <div class="modal-detail-row"><span>Beløb</span><span id="mAmt">—</span></div>
+      <div class="modal-detail-row"><span>Kurtage</span><span class="fee-zero">Gratis</span></div>
+      <div class="modal-detail-row" id="mFxRowWrap"><span id="mFxLabel">Valutaveksling</span><span id="mFx">—</span></div>
+      <div class="modal-detail-row" id="mSpreadRowWrap" style="display:none"><span id="mSpreadLabel">Spread</span><span id="mSpread">—</span></div>
+      <div class="modal-detail-row"><span id="mNetLabel">Du investerer effektivt</span><span id="mNet">—</span></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuller</button>
+      <button class="btn-confirm" id="modalConfirmBtn" onclick="confirmBuy()">Bekræft køb</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════
+   DATA
+═══════════════════════════════ */
+const indexes = [
+  { name:"Global Tech 100",  tag:"Teknologi", desc:"De 100 største teknologivirksomheder globalt inkl. AI, halvledere og cloud.", returnY:"+18,4%", stocks:100,  bars:[5,7,6,8,7,9,8,10,9,11], accent:"#3D8EF0", fx:true,  owned:24180 },
+  { name:"Nordisk Vækst",    tag:"Norden",    desc:"Ledende nordiske virksomheder fra DK, SE, NO og FI.",                         returnY:"+12,1%", stocks:60,   bars:[6,5,7,6,8,7,6,8,9,8],  accent:"#5DCAA5", fx:false, owned:18700 },
+  { name:"Grøn Omstilling",  tag:"ESG",       desc:"Vedvarende energi, batteriteknologi og bæredygtige virksomheder globalt.",    returnY:"+9,7%",  stocks:80,   bars:[4,5,4,6,5,7,6,7,8,9],  accent:"#78C96B", fx:true,  owned:15440 },
+  { name:"US Small Cap",     tag:"USA",       desc:"600 mindre amerikanske vækstvirksomheder med hjemmemarkedseksponering.",      returnY:"+14,2%", stocks:600,  bars:[7,6,8,7,9,7,8,9,8,10], accent:"#C07FF0", fx:true,  owned:26000 },
+  { name:"Dividende Europa", tag:"Udbytte",   desc:"Europæiske blue-chip aktier med stabil udbyttebetaling og lav volatilitet.", returnY:"+8,3%",  stocks:75,   bars:[8,8,7,9,8,8,9,8,9,8],  accent:"#F0A040", fx:false, owned:0 },
+  { name:"Emerging Markets", tag:"EM",        desc:"Vækstøkonomier i Asien, Latinamerika og Afrika via direkte aktier.",         returnY:"+16,5%", stocks:150,  bars:[3,5,4,6,5,7,8,7,9,10], accent:"#F06A6A", fx:true,  owned:0 },
+];
+
+const cryptoIndexes = [
+  {
+    name:"DeFi Top 10",    symbol:"DEFI",  tag:"DeFi",
+    desc:"De 10 største decentraliserede finansprotokoller. Uni, AAVE, Comp og flere.",
+    returnY:"+42,1%", coins:10,  bars:[4,6,5,8,7,10,9,12,11,14], accent:"#6AAAF5",
+    price:"42.180 kr", change:"+3,2%", changePos:true, owned:0,
+    icon:"◈", iconBg:"rgba(106,170,245,0.15)", iconColor:"#6AAAF5"
+  },
+  {
+    name:"Layer 1 Index", symbol:"L1IX",  tag:"Layer 1",
+    desc:"ETH, SOL, ADA, AVAX og de øvrige store smart-contract blockchains.",
+    returnY:"+28,7%", coins:8,   bars:[6,5,8,7,9,8,10,9,11,12], accent:"#C07FF0",
+    price:"18.940 kr", change:"+1,8%", changePos:true, owned:0,
+    icon:"⬡", iconBg:"rgba(192,127,240,0.15)", iconColor:"#C07FF0"
+  },
+  {
+    name:"Stablecoin Yield", symbol:"STBY", tag:"Stablecoin",
+    desc:"USDC, USDT, DAI og FRAX placeret i yielding-protokoller for stabil afkast.",
+    returnY:"+6,4%",  coins:5,   bars:[8,8,9,8,9,9,8,9,9,10],  accent:"#5DCAA5",
+    price:"10.020 kr", change:"+0,1%", changePos:true, owned:0,
+    icon:"$", iconBg:"rgba(93,202,165,0.15)", iconColor:"#5DCAA5"
+  },
+  {
+    name:"BTC & ETH Core",  symbol:"BTCE", tag:"Blue Chip",
+    desc:"60% Bitcoin og 40% Ethereum. Den sikreste vej ind i krypto.",
+    returnY:"+35,2%", coins:2,   bars:[5,7,6,9,8,10,9,11,13,14], accent:"#F0A040",
+    price:"63.200 kr", change:"+2,9%", changePos:true, owned:0,
+    icon:"₿", iconBg:"rgba(240,160,64,0.15)", iconColor:"#F0A040"
+  },
+  {
+    name:"Gaming & NFT",    symbol:"GNFT", tag:"Gaming",
+    desc:"AXS, SAND, MANA, IMX og ledende blockchain-gaming tokens.",
+    returnY:"+61,4%", coins:12,  bars:[3,5,4,7,6,9,8,11,10,13], accent:"#F06A6A",
+    price:"8.450 kr",  change:"-1,4%", changePos:false, owned:0,
+    icon:"🎮", iconBg:"rgba(240,106,106,0.15)", iconColor:"#F06A6A"
+  },
+  {
+    name:"AI & Web3",       symbol:"AIWB", tag:"AI Krypto",
+    desc:"FET, AGIX, OCEAN og tokens der driver decentraliseret AI-infrastruktur.",
+    returnY:"+88,3%", coins:15,  bars:[2,4,3,6,5,9,8,12,14,18], accent:"#78C96B",
+    price:"5.120 kr",  change:"+7,6%", changePos:true, owned:0,
+    icon:"⬡", iconBg:"rgba(120,201,107,0.15)", iconColor:"#78C96B"
+  },
+];
+
+let selectedIndex  = 0;
+let selectedCrypto = 0;
+let cryptoDirection = 'buy'; // 'buy' | 'sell'
+let pendingModal = null; // 'stock' | 'crypto'
+
+/* ═══════════════════════════════
+   UTILITIES
+═══════════════════════════════ */
+function fmt(n) {
+  return n.toLocaleString('da-DK', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function renderSparkline(bars) {
+  const max = Math.max(...bars);
+  return bars.map(b => {
+    const h = Math.round((b / max) * 24) + 4;
+    return `<div class="spark-bar" style="height:${h}px"></div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════
+   TOAST
+═══════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ═══════════════════════════════
+   PAGE NAVIGATION
+═══════════════════════════════ */
+function showPage(page) {
+  const pages = ['overview','portfolio','market','crypto'];
+  const pills  = document.querySelectorAll('.nav-pill');
+
+  pills.forEach((p, i) => p.classList.toggle('active', pages[i] === page));
+
+  document.getElementById('page-overview').style.display = page === 'overview' ? 'grid' : 'none';
+  ['portfolio','market','crypto'].forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('active', p === page);
+  });
+
+  if (page === 'portfolio') renderPortfolio();
+  if (page === 'market')    renderMarket();
+  if (page === 'crypto')    { renderCryptoGrid(); updateCryptoFees(); updateCryptoTotal(); }
+}
+
+/* ═══════════════════════════════
+   STOCK INDEX GRID
+═══════════════════════════════ */
+function renderGrid() {
+  document.getElementById('indexGrid').innerHTML = indexes.map((idx, i) => `
+    <div class="index-card ${i===selectedIndex?'selected':''}" style="--accent:${idx.accent}" onclick="selectIndex(${i})">
+      <div class="index-header">
+        <div class="index-name">${idx.name}</div>
+        <div class="index-tag">${idx.tag}</div>
+      </div>
+      <div class="index-desc">${idx.desc}</div>
+      <div class="sparkline">${renderSparkline(idx.bars)}</div>
+      <div class="index-footer">
+        <div class="index-return">${idx.returnY} <span>/ år</span></div>
+        <div class="index-stocks">${idx.stocks} aktier</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectIndex(i) {
+  selectedIndex = i;
+  renderGrid();
+  document.getElementById('selectedBadge').textContent = 'Valgt: ' + indexes[i].name;
+  updateFees();
+}
+
+function updateFees() {
+  const amount = parseFloat(document.getElementById('amountInput').value) || 0;
+  const hasFX  = indexes[selectedIndex].fx;
+  document.getElementById('fxRow').style.display  = hasFX ? 'flex' : 'none';
+  document.getElementById('fxNote').style.display = hasFX ? 'none' : 'block';
+  if (hasFX) {
+    document.getElementById('fxAmount').textContent  = fmt(amount * 0.001) + ' kr';
+    document.getElementById('netAmount').textContent = fmt(amount - amount * 0.001) + ' kr';
+  } else {
+    document.getElementById('netAmount').textContent = fmt(amount) + ' kr';
+  }
+}
+
+function setAmount(val) {
+  document.getElementById('amountInput').value = val;
+  updateFees();
+}
+
+document.getElementById('amountInput').addEventListener('input', updateFees);
+
+/* ═══════════════════════════════
+   CRYPTO GRID
+═══════════════════════════════ */
+function renderCryptoGrid() {
+  document.getElementById('cryptoGrid').innerHTML = cryptoIndexes.map((c, i) => `
+    <div class="crypto-card ${i===selectedCrypto?'selected':''}" style="--accent:${c.accent}" onclick="selectCrypto(${i})">
+      <div class="crypto-card-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="crypto-icon" style="background:${c.iconBg};color:${c.iconColor}">${c.icon}</div>
+          <div>
+            <div class="crypto-name">${c.name}</div>
+            <div class="crypto-symbol">${c.symbol} · ${c.tag}</div>
+          </div>
+        </div>
+        <div>
+          <div class="crypto-price">${c.price}</div>
+          <div class="crypto-change" style="color:${c.changePos?'var(--f-green)':'var(--f-red)'}">${c.change} i dag</div>
+        </div>
+      </div>
+      <div class="crypto-desc">${c.desc}</div>
+      <div class="sparkline">${renderSparkline(c.bars)}</div>
+      <div class="crypto-footer">
+        <div class="crypto-return" style="color:${c.accent}">${c.returnY} <span style="font-size:11px;color:var(--f-muted);font-family:'DM Sans',sans-serif">/ år</span></div>
+        <div class="crypto-coins">${c.coins} mønter</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCrypto(i) {
+  selectedCrypto = i;
+  renderCryptoGrid();
+  document.getElementById('cryptoSelectedBadge').textContent = 'Valgt: ' + cryptoIndexes[i].name;
+  updateCryptoFees();
+}
+
+function setDirection(dir) {
+  cryptoDirection = dir;
+  document.getElementById('dirBuy').className  = 'price-dir-btn' + (dir==='buy'  ? ' active-buy'  : '');
+  document.getElementById('dirSell').className = 'price-dir-btn' + (dir==='sell' ? ' active-sell' : '');
+  document.getElementById('cryptoBuyBtn').textContent = dir === 'buy' ? 'Køb kryptoindeks →' : 'Sælg kryptoindeks →';
+  document.getElementById('cryptoBuyBtn').style.background = dir === 'sell'
+    ? 'linear-gradient(135deg,#7f1d1d,#991b1b)' : '';
+  updateCryptoFees();
+}
+
+function updateCryptoFees() {
+  const amount = parseFloat(document.getElementById('cryptoAmountInput').value) || 0;
+  const fx     = amount * 0.001;          // 0.10%
+  const spread = amount * 0.0012;         // 0.12%
+  const net    = cryptoDirection === 'buy'
+    ? amount - fx - spread
+    : amount - fx + spread;              // on sell, spread reduces what you receive
+
+  document.getElementById('spreadLabel').textContent =
+    cryptoDirection === 'buy'
+      ? 'Spread (0,12% — køb)'
+      : 'Spread (0,12% — sælg)';
+
+  document.getElementById('cNetLabel').textContent =
+    cryptoDirection === 'buy' ? 'Du køber for effektivt' : 'Du modtager effektivt';
+
+  document.getElementById('cFxAmt').textContent    = fmt(fx)     + ' kr';
+  document.getElementById('cSpreadAmt').textContent = fmt(spread) + ' kr';
+  document.getElementById('cNetAmt').textContent    = fmt(net)    + ' kr';
+}
+
+function setCryptoAmount(val) {
+  document.getElementById('cryptoAmountInput').value = val;
+  updateCryptoFees();
+}
+
+function updateCryptoTotal() {
+  const total = cryptoIndexes.reduce((s,c) => s + c.owned, 0);
+  document.getElementById('cryptoTotalDisplay').textContent = fmt(total) + ' kr';
+  document.getElementById('cryptoChangeDisplay').textContent = total > 0 ? '↑ +2,1% i dag' : '—';
+}
+
+document.getElementById('cryptoAmountInput').addEventListener('input', updateCryptoFees);
+
+/* ═══════════════════════════════
+   MODAL — STOCKS
+═══════════════════════════════ */
+function openBuyModal() {
+  const amount = parseFloat(document.getElementById('amountInput').value) || 0;
+  if (amount < 100) { showToast('Minimumsbeløb er 100 kr.'); return; }
+  const idx   = indexes[selectedIndex];
+  const fx    = idx.fx ? amount * 0.001 : 0;
+  const net   = amount - fx;
+
+  document.getElementById('modalTitle').textContent = 'Bekræft køb';
+  document.getElementById('modalDesc').innerHTML    = `Du investerer i <strong>${idx.name}</strong>. Du ejer aktierne direkte og kan sælge til enhver tid.`;
+  document.getElementById('mIdx').textContent       = idx.name;
+  document.getElementById('mAmt').textContent       = fmt(amount) + ' kr';
+  document.getElementById('mFxLabel').textContent   = 'Valutaveksling (0,10%)';
+  document.getElementById('mFx').textContent        = idx.fx ? fmt(fx) + ' kr' : 'Ingen (DKK-indeks)';
+  document.getElementById('mSpreadRowWrap').style.display = 'none';
+  document.getElementById('mNetLabel').textContent  = 'Du investerer effektivt';
+  document.getElementById('mNet').textContent       = fmt(net) + ' kr';
+  document.getElementById('modalConfirmBtn').className = 'btn-confirm';
+  pendingModal = 'stock';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+/* ═══════════════════════════════
+   MODAL — CRYPTO
+═══════════════════════════════ */
+function openCryptoModal() {
+  const amount = parseFloat(document.getElementById('cryptoAmountInput').value) || 0;
+  if (amount < 100) { showToast('Minimumsbeløb er 100 kr.'); return; }
+  const c      = cryptoIndexes[selectedCrypto];
+  const fx     = amount * 0.001;
+  const spread = amount * 0.0012;
+  const net    = cryptoDirection === 'buy' ? amount - fx - spread : amount - fx + spread;
+  const isBuy  = cryptoDirection === 'buy';
+
+  document.getElementById('modalTitle').textContent = isBuy ? 'Bekræft kryptokøb' : 'Bekræft kryptosalg';
+  document.getElementById('modalDesc').innerHTML    = `Du er ved at ${isBuy?'købe':'sælge'} <strong>${c.name}</strong>. Du ejer/sælger mønterne direkte.`;
+  document.getElementById('mIdx').textContent       = c.name + ' (' + c.symbol + ')';
+  document.getElementById('mAmt').textContent       = fmt(amount) + ' kr';
+  document.getElementById('mFxLabel').textContent   = 'Valutaveksling DKK→USD (0,10%)';
+  document.getElementById('mFx').textContent        = fmt(fx) + ' kr';
+  document.getElementById('mSpreadRowWrap').style.display = 'flex';
+  document.getElementById('mSpreadLabel').textContent = 'Spread (0,12%)';
+  document.getElementById('mSpread').textContent    = fmt(spread) + ' kr';
+  document.getElementById('mNetLabel').textContent  = isBuy ? 'Du køber for effektivt' : 'Du modtager effektivt';
+  document.getElementById('mNet').textContent       = fmt(net) + ' kr';
+  document.getElementById('modalConfirmBtn').className = 'btn-confirm orange';
+  pendingModal = 'crypto';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  pendingModal = null;
+}
+
+function confirmBuy() {
+  if (pendingModal === 'stock') {
+    const amount = parseFloat(document.getElementById('amountInput').value) || 0;
+    indexes[selectedIndex].owned += amount;
+    showToast('✓ Køb gennemført — ' + fmt(amount) + ' kr. i ' + indexes[selectedIndex].name);
+  } else if (pendingModal === 'crypto') {
+    const amount = parseFloat(document.getElementById('cryptoAmountInput').value) || 0;
+    const isBuy  = cryptoDirection === 'buy';
+    if (!isBuy && cryptoIndexes[selectedCrypto].owned < amount) {
+      closeModal();
+      showToast('Du har ikke nok ' + cryptoIndexes[selectedCrypto].symbol + ' til at sælge dette beløb.');
+      return;
+    }
+    cryptoIndexes[selectedCrypto].owned += isBuy ? amount : -amount;
+    showToast((isBuy ? '✓ Købt ' : '✓ Solgt ') + fmt(amount) + ' kr. — ' + cryptoIndexes[selectedCrypto].name);
+    updateCryptoTotal();
+  }
+  closeModal();
+  renderPortfolio();
+}
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ═══════════════════════════════
+   PORTFOLIO PAGE
+═══════════════════════════════ */
+function renderPortfolio() {
+  const ownedStocks  = indexes.filter(i => i.owned > 0);
+  const ownedCryptos = cryptoIndexes.filter(c => c.owned > 0);
+  const totalStocks  = ownedStocks.reduce((s,i) => s+i.owned, 0);
+  const totalCrypto  = ownedCryptos.reduce((s,c) => s+c.owned, 0);
+  const total        = totalStocks + totalCrypto;
+
+  document.getElementById('portfolioStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total investeret</div><div class="stat-value">${fmt(total)} kr</div><div class="stat-change">↑ +2,4% i dag</div></div>
+    <div class="stat-card"><div class="stat-label">Aktieindeks</div><div class="stat-value">${ownedStocks.length}</div><div class="stat-change">direkte ejet</div></div>
+    <div class="stat-card"><div class="stat-label">Kryptoindeks</div><div class="stat-value">${ownedCryptos.length}</div><div class="stat-change" style="color:var(--f-orange)">direkte ejet</div></div>
+    <div class="stat-card"><div class="stat-label">Kurtagebesparelse</div><div class="stat-value">0 kr</div><div class="stat-change">altid gratis</div></div>
+  `;
+
+  // Stocks
+  if (ownedStocks.length === 0) {
+    document.getElementById('holdingList').innerHTML = `<p style="color:var(--f-muted);font-size:13px;">Ingen aktiebeholdninger endnu. <a href="#" onclick="showPage('overview');return false;" style="color:var(--f-accent)">Køb dit første indeks →</a></p>`;
+  } else {
+    document.getElementById('holdingList').innerHTML = ownedStocks.map(idx => {
+      const pct = total > 0 ? Math.round((idx.owned/total)*100) : 0;
+      return `
+        <div class="holding-card" style="--accent:${idx.accent}">
+          <div class="holding-dot" style="background:${idx.accent}"></div>
+          <div style="flex:1"><div class="holding-name">${idx.name}</div><div class="holding-shares">${idx.stocks} aktier · ${idx.tag}</div></div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+            <div style="font-size:10px;color:var(--f-muted);margin-top:3px;text-align:right">${pct}% af portefølje</div>
+          </div>
+          <div style="text-align:right;min-width:90px">
+            <div class="holding-value">${fmt(idx.owned)} kr</div>
+            <div class="holding-change" style="color:var(--f-green)">${idx.returnY} / år</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Crypto
+  document.getElementById('cryptoHoldingLabel').style.display = ownedCryptos.length > 0 ? 'block' : 'none';
+  if (ownedCryptos.length === 0) {
+    document.getElementById('cryptoHoldingList').innerHTML = `<p style="color:var(--f-muted);font-size:13px;">Ingen kryptobeholdninger endnu. <a href="#" onclick="showPage('crypto');return false;" style="color:var(--f-orange)">Udforsk kryptoindeks →</a></p>`;
+  } else {
+    document.getElementById('cryptoHoldingList').innerHTML = ownedCryptos.map(c => {
+      const pct = total > 0 ? Math.round((c.owned/total)*100) : 0;
+      return `
+        <div class="holding-card" style="--accent:${c.accent}">
+          <div class="holding-dot" style="background:${c.accent}"></div>
+          <div style="flex:1"><div class="holding-name">${c.name}</div><div class="holding-shares">${c.coins} mønter · ${c.tag}</div></div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${c.accent}"></div></div>
+            <div style="font-size:10px;color:var(--f-muted);margin-top:3px;text-align:right">${pct}% af portefølje</div>
+          </div>
+          <div style="text-align:right;min-width:90px">
+            <div class="holding-value">${fmt(c.owned)} kr</div>
+            <div class="holding-change" style="color:${c.changePos?'var(--f-green)':'var(--f-red)'}">${c.returnY} / år</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+}
+
+/* ═══════════════════════════════
+   MARKET PAGE
+═══════════════════════════════ */
+function renderMarket() {
+  document.getElementById('marketGrid').innerHTML = [
+    ...indexes.map((idx,i) => `
+      <div class="market-card" style="--accent:${idx.accent}">
+        <div class="market-card-name">${idx.name}</div>
+        <div class="market-card-tag">${idx.tag} · ${idx.stocks} aktier · ${idx.fx?'Inkl. valutaveksling':'DKK-indeks'}</div>
+        <div class="market-card-return">${idx.returnY}</div>
+        <div class="market-card-label">historisk afkast / år</div>
+        <div class="sparkline" style="height:36px">${renderSparkline(idx.bars)}</div>
+        <div class="market-meta"><span>${idx.fx?'0,10% valuta':'Ingen valutaomv.'}</span><span class="fee-zero">0 kr. kurtage</span></div>
+        <button class="btn-add" onclick="goToBuy(${i})">Køb dette indeks →</button>
+      </div>`),
+    ...cryptoIndexes.map((c,i) => `
+      <div class="market-card" style="--accent:${c.accent}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div class="crypto-icon" style="width:28px;height:28px;border-radius:7px;background:${c.iconBg};color:${c.iconColor};display:flex;align-items:center;justify-content:center;font-size:14px;">${c.icon}</div>
+          <div class="market-card-name" style="margin-bottom:0">${c.name}</div>
+        </div>
+        <div class="market-card-tag">${c.tag} · ${c.coins} mønter · USD-handel</div>
+        <div class="market-card-return" style="color:${c.accent}">${c.returnY}</div>
+        <div class="market-card-label">historisk afkast / år</div>
+        <div class="sparkline" style="height:36px">${renderSparkline(c.bars)}</div>
+        <div class="market-meta"><span>0,10% valuta + 0,12% spread</span><span class="fee-zero">0 kr. kurtage</span></div>
+        <button class="btn-add orange" onclick="goToCryptoBuy(${i})">Køb kryptoindeks →</button>
+      </div>`)
+  ].join('');
+}
+
+function goToBuy(i) {
+  selectIndex(i);
+  showPage('overview');
+  showToast(indexes[i].name + ' valgt — udfyld beløb og køb!');
+}
+
+function goToCryptoBuy(i) {
+  selectedCrypto = i;
+  showPage('crypto');
+  renderCryptoGrid();
+  document.getElementById('cryptoSelectedBadge').textContent = 'Valgt: ' + cryptoIndexes[i].name;
+  updateCryptoFees();
+  showToast(cryptoIndexes[i].name + ' valgt!');
+}
+
+/* ═══════════════════════════════
+   INIT
+═══════════════════════════════ */
+renderGrid();
+updateFees();
+document.getElementById('page-overview').style.display = 'grid';
+</script>
+</body>
+</html>
